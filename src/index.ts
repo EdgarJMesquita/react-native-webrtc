@@ -18,13 +18,12 @@ import permissions from './Permissions';
 import RTCAudioSession from './RTCAudioSession';
 import RTCErrorEvent from './RTCErrorEvent';
 import RTCIceCandidate from './RTCIceCandidate';
-import RTCPIPView, { startIOSPIP, stopIOSPIP } from './RTCPIPView';
 import RTCPeerConnection from './RTCPeerConnection';
 import RTCRtpReceiver from './RTCRtpReceiver';
 import RTCRtpSender from './RTCRtpSender';
 import RTCRtpTransceiver from './RTCRtpTransceiver';
 import RTCSessionDescription from './RTCSessionDescription';
-import RTCView, { type RTCVideoViewProps, type RTCIOSPIPOptions } from './RTCView';
+import RTCView, { type RTCVideoViewProps } from './RTCView';
 import ScreenCapturePickerView from './ScreenCapturePickerView';
 
 Logger.enable(`${Logger.ROOT_PREFIX}:*`);
@@ -37,7 +36,6 @@ export {
     RTCPeerConnection,
     RTCSessionDescription,
     RTCView,
-    RTCPIPView,
     ScreenCapturePickerView,
     RTCRtpTransceiver,
     RTCRtpReceiver,
@@ -48,12 +46,9 @@ export {
     MediaStreamTrack,
     type MediaTrackSettings,
     type RTCVideoViewProps,
-    type RTCIOSPIPOptions,
     mediaDevices,
     permissions,
     registerGlobals,
-    startIOSPIP,
-    stopIOSPIP,
 };
 
 declare const global: any;

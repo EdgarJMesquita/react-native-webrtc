@@ -32,6 +32,12 @@
  */
 @property(nonatomic) BOOL mirror;
 
+@property(nonatomic) BOOL autoEnterEnabled;
+
+@property(nonatomic) BOOL stopAutomatically;
+
+@property (nonatomic, assign) CGSize preferredSize;
+
 /**
  * In the fashion of
  * https://www.w3.org/TR/html5/embedded-content-0.html#dom-video-videowidth
@@ -40,7 +46,6 @@
  */
 @property(nonatomic) RTCVideoViewObjectFit objectFit;
 
-@property(nonatomic) BOOL enablePIP;
 
 @property(nonatomic, strong) API_AVAILABLE(ios(15.0)) PIPController *pipController;
 
@@ -144,60 +149,62 @@
         self.videoView.transform = mirror ? CGAffineTransformMakeScale(-1.0, 1.0) : CGAffineTransformIdentity;
     }
 }
+    
+- (void)setAutoEnterEnabled:(BOOL)autoEnterEnabled {
+    if (_autoEnterEnabled != autoEnterEnabled) {
+        _autoEnterEnabled = autoEnterEnabled;
+        if (@available(iOS 15.0, *)) {
+            [self setupPip];
+        }
+    }
+}
+    
+- (void)setStopAutomatically:(BOOL)stopAutomatically {
+    if (_stopAutomatically != stopAutomatically) {
+        _stopAutomatically = stopAutomatically;
+        if (_autoEnterEnabled){
+            if (@available(iOS 15.0, *)) {
+                [self setupPip];
+            }
+        }
+    }
+}
+    
+- (void)setPreferredSize:(CGSize)preferredSize {
+    if (!CGSizeEqualToSize(_preferredSize, preferredSize)) {
+        _preferredSize = preferredSize;
+        if (_autoEnterEnabled){
+            if (@available(iOS 15.0, *)) {
+                [self setupPip];
+            }
+        }
+    }
+}
 
 - (void)insertReactSubview:(UIView *)subview atIndex:(NSInteger)atIndex {
     // All subviews are treated as fallback views
     [_pipController insertFallbackView:subview];
 }
 
-- (void) API_AVAILABLE(ios(15.0)) setPIPOptions:(NSDictionary *)pipOptions {
-    if (!pipOptions) {
-        _pipController = nil;
-        return;
-    }
-    
-    BOOL enabled = YES;
-    BOOL startAutomatically = YES;
-    BOOL stopAutomatically = YES;
 
-    CGSize preferredSize = CGSizeZero;
-
-    if ([pipOptions objectForKey:@"enabled"]) {
-        enabled = [pipOptions[@"enabled"] boolValue];
-    }
-    if ([pipOptions objectForKey:@"startAutomatically"]) {
-        startAutomatically = [pipOptions[@"startAutomatically"] boolValue];
-    }
-    if ([pipOptions objectForKey:@"stopAutomatically"]) {
-        stopAutomatically = [pipOptions[@"stopAutomatically"] boolValue];
-    }
-    if ([pipOptions objectForKey:@"preferredSize"]) {
-        NSDictionary *sizeDict = pipOptions[@"preferredSize"];
-        id width = sizeDict[@"width"];
-        id height = sizeDict[@"height"];
-        
-        if ([width isKindOfClass:[NSNumber class]] && [height isKindOfClass:[NSNumber class]]) {
-            preferredSize = CGSizeMake([width doubleValue], [height doubleValue]);
-        }
-    }
-    
-    if (!enabled) {
-        _pipController = nil;
-        return;
-    }
-    
+- (void) API_AVAILABLE(ios(15.0)) setupPip {    
     if (!_pipController) {
         _pipController = [[PIPController alloc] initWithSourceView:self];
         _pipController.videoTrack = _videoTrack;
     }
     
-    _pipController.startAutomatically = startAutomatically;
-    _pipController.stopAutomatically = stopAutomatically;
+    if(!CGSizeEqualToSize(_preferredSize, CGSizeZero)){
+        _pipController.preferredSize = _preferredSize;
+    }
+    
+    _pipController.startAutomatically = _autoEnterEnabled;
+    _pipController.stopAutomatically = _stopAutomatically;
     _pipController.objectFit = _objectFit;
-    _pipController.preferredSize = preferredSize;
 }
 
+    
 - (void) API_AVAILABLE(ios(15.0)) startPIP {
+    [self setupPip];
     [_pipController startPIP];
 }
 
@@ -350,13 +357,25 @@ RCT_CUSTOM_VIEW_PROPERTY(streamURL, NSString *, RTCVideoView) {
     });
 }
 
-RCT_CUSTOM_VIEW_PROPERTY(iosPIP, NSDictionary *, RTCVideoView) {
+RCT_EXPORT_VIEW_PROPERTY(autoEnterEnabled, BOOL)
+    
+RCT_EXPORT_VIEW_PROPERTY(stopAutomatically, BOOL)
+    
+RCT_CUSTOM_VIEW_PROPERTY(preferredSize, NSDictionary *, RTCVideoView) {
     if (@available(iOS 15.0, *)) {
-        [view setPIPOptions:json];
+        if([json isKindOfClass: [NSDictionary class]]){
+           
+            id width = json[@"width"];
+            id height = json[@"height"];
+            
+            if ([width isKindOfClass:[NSNumber class]] && [height isKindOfClass:[NSNumber class]]) {
+                view.preferredSize = CGSizeMake([width doubleValue], [height doubleValue]);
+            }
+        }
     }
 }
-
-RCT_EXPORT_METHOD(startIOSPIP:(nonnull NSNumber *)reactTag) {
+    
+RCT_EXPORT_METHOD(enterPictureInPicture:(nonnull NSNumber *)reactTag) {
     if (@available(iOS 15.0, *)) {
         RCTUIManager *uiManager = [self.bridge moduleForClass:[RCTUIManager class]];
         [uiManager addUIBlock:^(RCTUIManager *uiManager, NSDictionary<NSNumber *,UIView *> *viewRegistry) {
@@ -370,7 +389,7 @@ RCT_EXPORT_METHOD(startIOSPIP:(nonnull NSNumber *)reactTag) {
     }
 }
 
-RCT_EXPORT_METHOD(stopIOSPIP:(nonnull NSNumber *)reactTag) {
+RCT_EXPORT_METHOD(exitPictureInPicture:(nonnull NSNumber *)reactTag) {
     if (@available(iOS 15.0, *)) {
         RCTUIManager *uiManager = [self.bridge moduleForClass:[RCTUIManager class]];
         [uiManager addUIBlock:^(RCTUIManager *uiManager, NSDictionary<NSNumber *,UIView *> *viewRegistry) {
@@ -383,6 +402,7 @@ RCT_EXPORT_METHOD(stopIOSPIP:(nonnull NSNumber *)reactTag) {
         }];
     }
 }
+
 + (BOOL)requiresMainQueueSetup {
     return NO;
 }
