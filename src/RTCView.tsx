@@ -71,7 +71,11 @@ export interface RTCVideoViewProps extends ViewProps {
    * zOrder: number
    */
   zOrder?: number;
-
+  /**
+   * Indicates whether this view can manage Picture in Picture.
+   * Only one view should be allowed to manage Picture in Picture
+   * Defaults to false.
+   */
   pictureInPictureEnabled?: boolean;
   /**
    * Indicates whether Picture in Picture starts automatically
@@ -80,23 +84,23 @@ export interface RTCVideoViewProps extends ViewProps {
    *
    * Defaults to true.
    *
-   * See: AVPictureInPictureController.canStartPictureInPictureAutomaticallyFromInline
+   * iOS: AVPictureInPictureController.canStartPictureInPictureAutomaticallyFromInline
    */
-  autoEnterEnabled?: boolean;
+  autoStartPictureInPicture?: boolean;
+  /**
+   * The preferred size of the PIP window.
+   */
+  pictureInPicturePreferredSize?: {
+    width: number;
+    height: number;
+  };
   /**
    * Indicates whether Picture in Picture should stop automatically
    * when the app returns to the foreground.
    *
    * Defaults to true.
    */
-  stopAutomatically?: boolean;
-  /**
-   * The preferred size of the PIP window.
-   */
-  preferredSize?: {
-    width: number;
-    height: number;
-  };
+  autoStopPictureInPicture?: boolean;
 }
 
 interface NativeVideoViewProps extends RTCVideoViewProps {
@@ -113,11 +117,18 @@ const RTCVideoView =
   requireNativeComponent<NativeVideoViewProps>("RTCVideoView");
 
 type RTCViewInstance = InstanceType<typeof RTCVideoView> & {
-  enterPictureInPicture: () => void;
-  exitPictureInPicture: () => void;
+  /**
+   * Programmatically start Picture In Picture
+   */
+  startPictureInPicture: () => void;
+  /**
+   * Programmatically stop Picture In Picture
+   * @ios
+   */
+  stopPictureInPicture: () => void;
 };
 
-type CommandName = "enterPictureInPicture" | "exitPictureInPicture";
+type CommandName = "startPictureInPicture" | "stopPictureInPicture";
 
 const getCommand = (commandName: CommandName) => {
   const config = UIManager.getViewManagerConfig("RTCVideoView");
@@ -125,39 +136,39 @@ const getCommand = (commandName: CommandName) => {
   return Platform.OS === "android" ? command.toString() : command;
 };
 
-const enterPictureInPicture = (node: NodeHandle | null) =>
+const startPictureInPicture = (node: NodeHandle | null) =>
   UIManager.dispatchViewManagerCommand(
     node,
-    getCommand("enterPictureInPicture"),
+    getCommand("startPictureInPicture"),
     []
   );
 
-const exitPictureInPicture = (node: NodeHandle | null) =>
+const stopPictureInPicture = (node: NodeHandle | null) =>
   UIManager.dispatchViewManagerCommand(
     node,
-    getCommand("exitPictureInPicture"),
+    getCommand("stopPictureInPicture"),
     []
   );
 
 const RTCView = React.forwardRef<RTCViewInstance, ReactVideoViewProps>(
-  function RTCView({ stopAutomatically = true, ...props }, forwardedRef) {
-    const inputRef = useRef<null | React.ElementRef<
+  function RTCView(props, forwardedRef) {
+    const nativeRef = useRef<null | React.ElementRef<
       HostComponent<NativeVideoViewProps>
     >>(null);
 
     const setLocalRef = useCallback((instance: RTCViewInstance | null) => {
-      inputRef.current = instance;
+      nativeRef.current = instance;
 
       if (instance !== null) {
         Object.assign(instance, {
-          enterPictureInPicture(): void {
-            if (inputRef.current !== null) {
-              enterPictureInPicture(findNodeHandle(inputRef.current));
+          startPictureInPicture(): void {
+            if (nativeRef.current !== null) {
+              startPictureInPicture(findNodeHandle(nativeRef.current));
             }
           },
-          exitPictureInPicture(): void {
-            if (inputRef.current !== null) {
-              exitPictureInPicture(findNodeHandle(inputRef.current));
+          stopPictureInPicture(): void {
+            if (nativeRef.current !== null) {
+              stopPictureInPicture(findNodeHandle(nativeRef.current));
             }
           },
         });
@@ -175,7 +186,6 @@ const RTCView = React.forwardRef<RTCViewInstance, ReactVideoViewProps>(
     return (
       <RTCVideoView
         {...props}
-        stopAutomatically={stopAutomatically}
         ref={ref}
         onPictureInPictureModeChanged={onPictureInPictureModeChanged}
       />

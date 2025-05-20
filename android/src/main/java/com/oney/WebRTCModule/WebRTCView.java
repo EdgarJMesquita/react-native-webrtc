@@ -153,28 +153,55 @@ public class WebRTCView extends ViewGroup implements PictureInPictureHelperListe
      */
     private VideoTrack videoTrack;
 
+    /**
+     * Holds the react context
+     */
     @Nullable
     private ReactContext reactContext;
 
     @Nullable
     private Activity currentActivity;
 
-    private WebRTCView rtcView;
-
+    /**
+     * Helper tag to safely attach and detach PictureInPictureHelperFragment
+     */
     @Nullable
     private String pictureInPictureHelperTag;
 
+    /**
+     * Reference to root view
+     */
     @Nullable
     private ViewGroup rootView;
 
-    private ArrayList<Integer> rootViewChildrenOriginalVisibility = new ArrayList<>();
+    /**
+     * Save the rootView's children original visibility state.
+     */
+    private final ArrayList<Integer> rootViewChildrenOriginalVisibility = new ArrayList<>();
 
+    /**
+     * Whether this WebRTCView should handle Picture-In-Picture.
+     */
     private Boolean pictureInPictureEnabled = false;
 
-    private Boolean autoEnterPip = false;
+    /**
+     * Whether this WebRTCView should handle Picture-In-Picture.
+     */
+    private Boolean werePictureInPictureEnabled = false;
 
+    /**
+     * Whether autoEnter Picture-In-Picture should be apply.
+     */
+    private Boolean autoStartPictureInPicture = true;
+
+    /**
+     * Event name to send to onPictureInPictureModeChanged callback.
+     */
     static String onPictureInPictureChangeEventName = "onPictureInPictureModeChanged";
 
+    /**
+     * The preferredAspectRatio to apply in Picture-In-Picture Mode.
+     */
     @Nullable
     private Rational preferredAspectRatio;
 
@@ -588,68 +615,68 @@ public class WebRTCView extends ViewGroup implements PictureInPictureHelperListe
         }
     }
 
+
     void setPictureInPictureEnabled(Boolean pictureInPictureEnabled){
         this.pictureInPictureEnabled = pictureInPictureEnabled;
-        setAutoEnterEnabled(autoEnterPip);
-
-        if(!pictureInPictureEnabled){
+        if(pictureInPictureEnabled){
+            werePictureInPictureEnabled = true;
+        } else if (werePictureInPictureEnabled){
             PictureInPictureUtils.applyAutoEnter(currentActivity, false);
         }
+        applyPictureInPictureParams();
     }
 
-    void setAutoEnterEnabled(Boolean autoEnterEnabled){
-        if(currentActivity == null) return;
-        if(autoEnterEnabled == null){
-            autoEnterEnabled = false;
+    protected void applyPictureInPictureParams(){
+        if(!pictureInPictureEnabled){
+            return;
         }
 
-        autoEnterPip = autoEnterEnabled;
-
-        if(!pictureInPictureEnabled) return;
-
         PictureInPictureUtils.applySourceRectHint(currentActivity,this);
+        PictureInPictureUtils.applyAutoEnter(currentActivity, autoStartPictureInPicture);
+
         if(preferredAspectRatio != null){
             PictureInPictureUtils.applyAspectRatio(currentActivity, preferredAspectRatio);
         } else {
             PictureInPictureUtils.applyAspectRatio(currentActivity, new Rational(getWidth(),getHeight()));
         }
-        PictureInPictureUtils.applyAutoEnter(currentActivity, autoEnterPip);
     }
 
-    void setPreferredSize(@Nullable ReadableMap size) {
+    void setAutoStartPictureInPicture(Boolean autoStartPictureInPicture){
+        if(autoStartPictureInPicture == null){
+            autoStartPictureInPicture = true;
+        }
+        this.autoStartPictureInPicture = autoStartPictureInPicture;
+        applyPictureInPictureParams();
+    }
+
+    void setPictureInPicturePreferredSize(@Nullable ReadableMap size) {
         if(size == null) {
             preferredAspectRatio = null;
-            PictureInPictureUtils.applyAspectRatio(currentActivity, new Rational(getWidth(),getHeight()));
+            applyPictureInPictureParams();
             return;
         };
 
         if(!size.hasKey("width")) return;
-
         if(size.isNull("width")) return;
 
         if(!size.hasKey("height")) return;
-
         if(size.isNull("height")) return;
 
         Rational aspectRatio = new Rational(size.getInt("width"),size.getInt("height"));
 
         if(aspectRatio.isNaN()) return;
 
-
         preferredAspectRatio = aspectRatio;
 
-        if(!pictureInPictureEnabled) return;
-        PictureInPictureUtils.applyAspectRatio(currentActivity, preferredAspectRatio);
+        applyPictureInPictureParams();
     }
 
     void enterPictureInPicture(){
-        if(!pictureInPictureEnabled) return;
-        PictureInPictureUtils.applySourceRectHint(currentActivity,this);
-        if(preferredAspectRatio != null){
-            PictureInPictureUtils.applyAspectRatio(currentActivity, preferredAspectRatio);
-        } else {
-            PictureInPictureUtils.applyAspectRatio(currentActivity,new Rational(getWidth(),getHeight()));
+        if(!pictureInPictureEnabled) {
+            Log.d(TAG, "pictureInPicture is disabled for this RTCView.");
+            return;
         }
+        applyPictureInPictureParams();
         PictureInPictureUtils.safeEnterPictureInPicture(currentActivity);
     }
 
@@ -701,9 +728,10 @@ public class WebRTCView extends ViewGroup implements PictureInPictureHelperListe
             fragment.setListener(this);
             fragmentActivity.getSupportFragmentManager().beginTransaction().add(fragment,fragment.id).commit();
         }
-        if(pictureInPictureEnabled){
-            PictureInPictureUtils.applyAutoEnter(currentActivity, autoEnterPip);
-        }
+        applyPictureInPictureParams();
+//        if(pictureInPictureEnabled){
+//            PictureInPictureUtils.applyAutoEnter(currentActivity, autoEnterPip);
+//        }
     }
 
     void detachPictureInPictureHelperFragment(){
@@ -716,6 +744,7 @@ public class WebRTCView extends ViewGroup implements PictureInPictureHelperListe
                 fragmentActivity.getSupportFragmentManager().beginTransaction().remove(fragment).commitAllowingStateLoss();
             }
         }
+
         if(pictureInPictureEnabled) {
             PictureInPictureUtils.applyAutoEnter(currentActivity, false);
         }

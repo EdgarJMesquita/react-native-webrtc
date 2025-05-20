@@ -32,11 +32,13 @@
  */
 @property(nonatomic) BOOL mirror;
 
-@property(nonatomic) BOOL autoEnterEnabled;
+@property(nonatomic) BOOL pictureInPictureEnabled;
 
-@property(nonatomic) BOOL stopAutomatically;
+@property(nonatomic) BOOL autoStartPictureInPicture;
 
-@property (nonatomic, assign) CGSize preferredSize;
+@property(nonatomic) BOOL autoStopPictureInPicture;
+
+@property (nonatomic, assign) CGSize pictureInPicturePreferredSize;
 
 /**
  * In the fashion of
@@ -117,6 +119,8 @@
         _videoView = subview;
 #endif
         _objectFit = RTCVideoViewObjectFitCover;
+        _autoStartPictureInPicture = YES;
+        _autoStopPictureInPicture = YES;
         [self addSubview:self.videoView];
     }
 
@@ -150,19 +154,26 @@
     }
 }
     
-- (void)setAutoEnterEnabled:(BOOL)autoEnterEnabled {
-    if (_autoEnterEnabled != autoEnterEnabled) {
-        _autoEnterEnabled = autoEnterEnabled;
+- (void)setPictureInPictureEnabled:(BOOL)pictureInPictureEnabled {
+    _pictureInPictureEnabled = pictureInPictureEnabled;
+    if (@available(iOS 15.0, *)){
+        [self setupPip];
+    }
+}
+    
+- (void)setAutoStartPictureInPicture:(BOOL)autoStartPictureInPicture {
+    if (_autoStartPictureInPicture != autoStartPictureInPicture) {
+        _autoStartPictureInPicture = autoStartPictureInPicture;
         if (@available(iOS 15.0, *)) {
             [self setupPip];
         }
     }
 }
     
-- (void)setStopAutomatically:(BOOL)stopAutomatically {
-    if (_stopAutomatically != stopAutomatically) {
-        _stopAutomatically = stopAutomatically;
-        if (_autoEnterEnabled){
+- (void)setAutoStopPictureInPicture:(BOOL)autoStopPictureInPicture {
+    if (_autoStopPictureInPicture != autoStopPictureInPicture) {
+        _autoStopPictureInPicture = autoStopPictureInPicture;
+        if (_autoStartPictureInPicture){
             if (@available(iOS 15.0, *)) {
                 [self setupPip];
             }
@@ -170,10 +181,10 @@
     }
 }
     
-- (void)setPreferredSize:(CGSize)preferredSize {
-    if (!CGSizeEqualToSize(_preferredSize, preferredSize)) {
-        _preferredSize = preferredSize;
-        if (_autoEnterEnabled){
+- (void)setPictureInPicturePreferredSize:(CGSize)pictureInPicturePreferredSize {
+    if (!CGSizeEqualToSize(_pictureInPicturePreferredSize, pictureInPicturePreferredSize)) {
+        _pictureInPicturePreferredSize = pictureInPicturePreferredSize;
+        if (_autoStartPictureInPicture){
             if (@available(iOS 15.0, *)) {
                 [self setupPip];
             }
@@ -187,18 +198,23 @@
 }
 
 
-- (void) API_AVAILABLE(ios(15.0)) setupPip {    
+- (void) API_AVAILABLE(ios(15.0)) setupPip {
+    if (!_pictureInPictureEnabled){
+        _pipController = nil;
+        return;
+    }
+    
     if (!_pipController) {
         _pipController = [[PIPController alloc] initWithSourceView:self];
         _pipController.videoTrack = _videoTrack;
     }
     
-    if(!CGSizeEqualToSize(_preferredSize, CGSizeZero)){
-        _pipController.preferredSize = _preferredSize;
+    if(!CGSizeEqualToSize(_pictureInPicturePreferredSize, CGSizeZero)){
+        _pipController.preferredSize = _pictureInPicturePreferredSize;
     }
     
-    _pipController.startAutomatically = _autoEnterEnabled;
-    _pipController.stopAutomatically = _stopAutomatically;
+    _pipController.startAutomatically = _autoStartPictureInPicture;
+    _pipController.stopAutomatically = _autoStopPictureInPicture;
     _pipController.objectFit = _objectFit;
 }
 
@@ -357,11 +373,14 @@ RCT_CUSTOM_VIEW_PROPERTY(streamURL, NSString *, RTCVideoView) {
     });
 }
 
-RCT_EXPORT_VIEW_PROPERTY(autoEnterEnabled, BOOL)
+
+RCT_EXPORT_VIEW_PROPERTY(pictureInPictureEnabled, BOOL)
     
-RCT_EXPORT_VIEW_PROPERTY(stopAutomatically, BOOL)
+RCT_EXPORT_VIEW_PROPERTY(autoStartPictureInPicture, BOOL)
     
-RCT_CUSTOM_VIEW_PROPERTY(preferredSize, NSDictionary *, RTCVideoView) {
+RCT_EXPORT_VIEW_PROPERTY(autoStopPictureInPicture, BOOL)
+    
+RCT_CUSTOM_VIEW_PROPERTY(pictureInPicturePreferredSize, NSDictionary *, RTCVideoView) {
     if (@available(iOS 15.0, *)) {
         if([json isKindOfClass: [NSDictionary class]]){
            
@@ -369,13 +388,13 @@ RCT_CUSTOM_VIEW_PROPERTY(preferredSize, NSDictionary *, RTCVideoView) {
             id height = json[@"height"];
             
             if ([width isKindOfClass:[NSNumber class]] && [height isKindOfClass:[NSNumber class]]) {
-                view.preferredSize = CGSizeMake([width doubleValue], [height doubleValue]);
+                view.pictureInPicturePreferredSize = CGSizeMake([width doubleValue], [height doubleValue]);
             }
         }
     }
 }
     
-RCT_EXPORT_METHOD(enterPictureInPicture:(nonnull NSNumber *)reactTag) {
+RCT_EXPORT_METHOD(startPictureInPicture:(nonnull NSNumber *)reactTag) {
     if (@available(iOS 15.0, *)) {
         RCTUIManager *uiManager = [self.bridge moduleForClass:[RCTUIManager class]];
         [uiManager addUIBlock:^(RCTUIManager *uiManager, NSDictionary<NSNumber *,UIView *> *viewRegistry) {
@@ -389,7 +408,7 @@ RCT_EXPORT_METHOD(enterPictureInPicture:(nonnull NSNumber *)reactTag) {
     }
 }
 
-RCT_EXPORT_METHOD(exitPictureInPicture:(nonnull NSNumber *)reactTag) {
+RCT_EXPORT_METHOD(stopPictureInPicture:(nonnull NSNumber *)reactTag) {
     if (@available(iOS 15.0, *)) {
         RCTUIManager *uiManager = [self.bridge moduleForClass:[RCTUIManager class]];
         [uiManager addUIBlock:^(RCTUIManager *uiManager, NSDictionary<NSNumber *,UIView *> *viewRegistry) {

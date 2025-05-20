@@ -122,10 +122,10 @@ const App = () => {
   };
 
   const startPIP = () => {
-    ref.current?.enterPictureInPicture();
+    ref.current?.startPictureInPicture();
   };
   const stopPIP = () => {
-    ref.current?.exitPictureInPicture();
+    ref.current?.stopPictureInPicture();
   };
 
   const stop = () => {
@@ -146,12 +146,12 @@ const App = () => {
           {remoteStream && (
             <RTCView
               pictureInPictureEnabled={true}
-              autoEnterEnabled={true}
+              autoStartPictureInPicture={true}
               ref={ref}
               streamURL={remoteStream.toURL()}
               style={styles.remoteStream}
               objectFit="cover"
-              preferredSize={{
+              pictureInPicturePreferredSize={{
                 width: 100,
                 height: 100,
               }}>

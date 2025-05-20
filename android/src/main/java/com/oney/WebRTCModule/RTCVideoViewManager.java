@@ -83,7 +83,16 @@ public class RTCVideoViewManager extends ViewGroupManager<WebRTCView> {
     }
 
 
-    @ReactProp(name = "pictureInPictureEnabled")
+    /**
+     * Sets whether Picture-in-Picture (PiP) will be handled by this {@code WebRTCView}.
+     *
+     * This corresponds to the {@code pictureInPictureEnabled} prop in the JavaScript
+     * counterpart of {@code WebRTCView} (i.e. {@code RTCView}).
+     *
+     * @param view The {@code WebRTCView} on which the {@code pictureInPictureEnabled} flag is to be set.
+     * @param pictureInPictureEnabled Whether this view should handle platform Picture-In-Picture API.
+     */
+    @ReactProp(name = "pictureInPictureEnabled", defaultBoolean = false)
     public void setPictureInPictureEnabled(WebRTCView view, Boolean pictureInPictureEnabled) {
         view.setPictureInPictureEnabled(pictureInPictureEnabled);
     }
@@ -95,24 +104,24 @@ public class RTCVideoViewManager extends ViewGroupManager<WebRTCView> {
      * counterpart of {@code WebRTCView} (i.e. {@code RTCView}).
      *
      * @param view The {@code WebRTCView} on which the {@code isAutoEnterEnabled} flag is to be set.
-     * @param autoEnterEnabled Whether PiP should auto-enter on supported platforms.
+     * @param autoStartPictureInPicture Whether PiP should auto-enter on supported platforms.
      */
-    @ReactProp(name = "autoEnterEnabled")
-    public void setAutoEnterEnabled(WebRTCView view, Boolean autoEnterEnabled) {
-        view.setAutoEnterEnabled(autoEnterEnabled);
+    @ReactProp(name = "autoStartPictureInPicture", defaultBoolean = true)
+    public void setAutoStartPictureInPicture(WebRTCView view, Boolean autoStartPictureInPicture) {
+        view.setAutoStartPictureInPicture(autoStartPictureInPicture);
     }
 
-    @ReactProp(name = "preferredSize")
-    public void setPreferredSize(WebRTCView view, @Nullable ReadableMap size) {
-        view.setPreferredSize(size);
+    @ReactProp(name = "pictureInPicturePreferredSize")
+    public void setPictureInPicturePreferredSize(WebRTCView view, @Nullable ReadableMap size) {
+        view.setPictureInPicturePreferredSize(size);
     }
 
     @Nullable
     @Override
     public Map<String, Integer> getCommandsMap() {
         return MapBuilder.of(
-                "enterPictureInPicture", COMMAND_ENTER_PIP,
-                "exitPictureInPicture", COMMAND_EXIT_PIP
+                "startPictureInPicture", COMMAND_ENTER_PIP,
+                "stopPictureInPicture", COMMAND_EXIT_PIP
                 );
     }
 
