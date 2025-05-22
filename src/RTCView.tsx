@@ -116,7 +116,7 @@ interface ReactVideoViewProps extends RTCVideoViewProps {
 const RTCVideoView =
   requireNativeComponent<NativeVideoViewProps>("RTCVideoView");
 
-type RTCViewInstance = InstanceType<typeof RTCVideoView> & {
+type RTCViewRef = InstanceType<typeof RTCVideoView> & {
   /**
    * Programmatically start Picture In Picture
    */
@@ -150,13 +150,13 @@ const stopPictureInPicture = (node: NodeHandle | null) =>
     []
   );
 
-const RTCView = React.forwardRef<RTCViewInstance, ReactVideoViewProps>(
+const RTCView = React.forwardRef<RTCViewRef, ReactVideoViewProps>(
   function RTCView(props, forwardedRef) {
     const nativeRef = useRef<null | React.ElementRef<
       HostComponent<NativeVideoViewProps>
     >>(null);
 
-    const setLocalRef = useCallback((instance: RTCViewInstance | null) => {
+    const setLocalRef = useCallback((instance: RTCViewRef | null) => {
       nativeRef.current = instance;
 
       if (instance !== null) {
@@ -175,7 +175,7 @@ const RTCView = React.forwardRef<RTCViewInstance, ReactVideoViewProps>(
       }
     }, []);
 
-    const ref = useMergeRefs<RTCViewInstance | null>(setLocalRef, forwardedRef);
+    const ref = useMergeRefs<RTCViewRef | null>(setLocalRef, forwardedRef);
 
     const onPictureInPictureModeChanged: NativeVideoViewProps["onPictureInPictureModeChanged"] =
       (event) =>
@@ -192,5 +192,7 @@ const RTCView = React.forwardRef<RTCViewInstance, ReactVideoViewProps>(
     );
   }
 );
+
+export { RTCViewRef };
 
 export default RTCView;
