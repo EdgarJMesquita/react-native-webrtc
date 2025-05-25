@@ -195,9 +195,9 @@ public class WebRTCView extends ViewGroup implements PictureInPictureHelperListe
     private Boolean autoStartPictureInPicture = true;
 
     /**
-     * Event name to send to onPictureInPictureModeChanged callback.
+     * Event name to send to onPictureInPictureChange callback.
      */
-    static String onPictureInPictureChangeEventName = "onPictureInPictureModeChanged";
+    static String onPictureInPictureChangeEventName = "onPictureInPictureChange";
 
     /**
      * The preferredAspectRatio to apply in Picture-In-Picture Mode.
@@ -755,7 +755,7 @@ public class WebRTCView extends ViewGroup implements PictureInPictureHelperListe
         if(reactContext == null) return;
 
         WritableMap event = Arguments.createMap();
-        event.putBoolean("isInPictureInPictureMode", isInPictureInPictureMode);
+        event.putBoolean("isInPictureInPicture", isInPictureInPictureMode);
 
         reactContext
                 .getJSModule(RCTEventEmitter.class)

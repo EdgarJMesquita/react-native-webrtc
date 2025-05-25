@@ -145,15 +145,18 @@ const App = () => {
         <View style={styles.content}>
           {remoteStream && (
             <RTCView
-              pictureInPictureEnabled={true}
-              autoStartPictureInPicture={true}
               ref={ref}
               streamURL={remoteStream.toURL()}
               style={styles.remoteStream}
               objectFit="cover"
+              onPictureInPictureChange={(isInPictureInPicture) =>
+                console.log({isInPictureInPicture})
+              }
+              pictureInPictureEnabled={true}
+              autoStartPictureInPicture={true}
               pictureInPicturePreferredSize={{
-                width: 100,
-                height: 100,
+                width: 150,
+                height: 190,
               }}>
               <View
                 style={{width: 100, height: 100, backgroundColor: 'blue'}}

@@ -23,7 +23,7 @@
  * Implements an equivalent of {@code HTMLVideoElement} i.e. Web's video
  * element.
  */
-@interface RTCVideoView : RCTView
+@interface RTCVideoView : RCTView <PIPControllerDelegate>
 
 /**
  * The indicator which determines whether this {@code RTCVideoView} is to mirror
@@ -39,6 +39,8 @@
 @property(nonatomic) BOOL autoStopPictureInPicture;
 
 @property (nonatomic, assign) CGSize pictureInPicturePreferredSize;
+
+@property (nonatomic, copy) RCTBubblingEventBlock onPictureInPictureChange;
 
 /**
  * In the fashion of
@@ -207,6 +209,7 @@
     if (!_pipController) {
         _pipController = [[PIPController alloc] initWithSourceView:self];
         _pipController.videoTrack = _videoTrack;
+        _pipController.delegate = self;
     }
     
     if(!CGSizeEqualToSize(_pictureInPicturePreferredSize, CGSizeZero)){
@@ -314,6 +317,16 @@
         }
     }
 }
+    
+#pragma PIPControllerDelegate
+    
+- (void)didChangePictureInPicture:(BOOL)isInPictureInPicture {
+    if (self.onPictureInPictureChange){
+        self.onPictureInPictureChange(@{
+            @"isInPictureInPicture": @(isInPictureInPicture)
+        });
+    }
+}
 
 @end
 
@@ -379,6 +392,8 @@ RCT_EXPORT_VIEW_PROPERTY(pictureInPictureEnabled, BOOL)
 RCT_EXPORT_VIEW_PROPERTY(autoStartPictureInPicture, BOOL)
     
 RCT_EXPORT_VIEW_PROPERTY(autoStopPictureInPicture, BOOL)
+    
+RCT_EXPORT_VIEW_PROPERTY(onPictureInPictureChange, RCTBubblingEventBlock)
     
 RCT_CUSTOM_VIEW_PROPERTY(pictureInPicturePreferredSize, NSDictionary *, RTCVideoView) {
     if (@available(iOS 15.0, *)) {
