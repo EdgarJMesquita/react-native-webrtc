@@ -23,7 +23,7 @@ import RTCRtpReceiver from './RTCRtpReceiver';
 import RTCRtpSender from './RTCRtpSender';
 import RTCRtpTransceiver from './RTCRtpTransceiver';
 import RTCSessionDescription from './RTCSessionDescription';
-import RTCView, { type RTCVideoViewProps, type RTCViewRef } from './RTCView';
+import RTCView, { type RTCVideoViewProps } from './RTCView';
 import ScreenCapturePickerView from './ScreenCapturePickerView';
 
 Logger.enable(`${Logger.ROOT_PREFIX}:*`);
@@ -36,7 +36,6 @@ export {
     RTCPeerConnection,
     RTCSessionDescription,
     RTCView,
-    type RTCViewRef,
     ScreenCapturePickerView,
     RTCRtpTransceiver,
     RTCRtpReceiver,

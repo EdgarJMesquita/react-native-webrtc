@@ -1,15 +1,13 @@
-import React, { useCallback, useRef } from "react";
+import React from 'react';
 import {
-  findNodeHandle,
-  HostComponent,
-  NativeSyntheticEvent,
-  NodeHandle,
-  Platform,
-  requireNativeComponent,
-  UIManager,
-  ViewProps,
-} from "react-native";
-import { useMergeRefs } from "./useMergeRefs";
+    findNodeHandle,
+    NativeMethods,
+    NativeSyntheticEvent,
+    Platform,
+    requireNativeComponent,
+    UIManager,
+    ViewProps,
+} from 'react-native';
 
 /**
  * Native prop validation was removed from RN in:
@@ -17,7 +15,7 @@ import { useMergeRefs } from "./useMergeRefs";
  *
  * So we list them here for documentation purposes.
  */
-export interface RTCVideoViewProps extends ViewProps {
+interface RTCVideoViewBaseProps extends ViewProps {
   /**
    * Indicates whether the video specified by {@link #streamURL} should be
    * mirrored during rendering. Commonly, applications choose to mirror the
@@ -37,7 +35,7 @@ export interface RTCVideoViewProps extends ViewProps {
    *
    * Defaults to 'cover'.
    */
-  objectFit?: "contain" | "cover";
+  objectFit?: 'contain' | 'cover';
 
   /**
    * URL / id of the stream that should be rendered.
@@ -103,96 +101,104 @@ export interface RTCVideoViewProps extends ViewProps {
   autoStopPictureInPicture?: boolean;
 }
 
-interface NativeVideoViewProps extends RTCVideoViewProps {
-  onPictureInPictureModeChanged?: (
-    event: NativeSyntheticEvent<{ isInPictureInPictureMode: boolean }>
+interface NativeVideoViewProps extends RTCVideoViewBaseProps {
+  onPictureInPictureChange?: (
+    event: NativeSyntheticEvent<{ isInPictureInPicture: boolean }>
   ) => void;
 }
 
-interface ReactVideoViewProps extends RTCVideoViewProps {
-  onPictureInPictureModeChanged?: (isInPictureInPictureMode: boolean) => void;
+interface RTCVideoViewProps extends RTCVideoViewBaseProps {
+  onPictureInPictureChange?: (isInPictureInPicture: boolean) => void;
 }
 
-const RTCVideoView =
-  requireNativeComponent<NativeVideoViewProps>("RTCVideoView");
+const NativeRTCVideoView =
+  requireNativeComponent<NativeVideoViewProps>('RTCVideoView');
 
-type RTCViewRef = InstanceType<typeof RTCVideoView> & {
-  /**
+type CommandName = 'startPictureInPicture' | 'stopPictureInPicture';
+
+type RefType = React.Component<NativeVideoViewProps> & Readonly<NativeMethods>;
+
+class RTCView extends React.PureComponent<RTCVideoViewProps> {
+    private readonly ref: React.RefObject<RefType>;
+
+    constructor(props: RTCVideoViewProps) {
+        super(props);
+        this.onPictureInPictureChange = this.onPictureInPictureChange.bind(this);
+        this.ref = React.createRef<RefType>();
+    }
+
+    /**
    * Programmatically start Picture In Picture
    */
-  startPictureInPicture: () => void;
-  /**
+    public startPictureInPicture() {
+        try {
+            const node = this.handle;
+
+            UIManager.dispatchViewManagerCommand(
+                node,
+                this.getCommand('startPictureInPicture'),
+                []
+            );
+        } catch (error) {
+            console.warn(error);
+        }
+    }
+    /**
    * Programmatically stop Picture In Picture
    * @ios
    */
-  stopPictureInPicture: () => void;
-};
+    public stopPictureInPicture() {
+        try {
+            const node = this.handle;
 
-type CommandName = "startPictureInPicture" | "stopPictureInPicture";
+            UIManager.dispatchViewManagerCommand(
+                node,
+                this.getCommand('stopPictureInPicture'),
+                []
+            );
+        } catch (error) {
+            console.warn(error);
+        }
+    }
 
-const getCommand = (commandName: CommandName) => {
-  const config = UIManager.getViewManagerConfig("RTCVideoView");
-  const command = config.Commands[commandName];
-  return Platform.OS === "android" ? command.toString() : command;
-};
+    private getCommand(commandName: CommandName): string | number {
+        const config = UIManager.getViewManagerConfig('RTCVideoView');
+        const command = config.Commands[commandName];
 
-const startPictureInPicture = (node: NodeHandle | null) =>
-  UIManager.dispatchViewManagerCommand(
-    node,
-    getCommand("startPictureInPicture"),
-    []
-  );
+        return Platform.OS === 'android' ? command.toString() : command;
+    }
 
-const stopPictureInPicture = (node: NodeHandle | null) =>
-  UIManager.dispatchViewManagerCommand(
-    node,
-    getCommand("stopPictureInPicture"),
-    []
-  );
+    private get handle(): number {
+        const nodeHandle = findNodeHandle(this.ref.current);
 
-const RTCView = React.forwardRef<RTCViewRef, ReactVideoViewProps>(
-  function RTCView(props, forwardedRef) {
-    const nativeRef = useRef<null | React.ElementRef<
-      HostComponent<NativeVideoViewProps>
-    >>(null);
+        if (nodeHandle === null || nodeHandle === -1) {
+            throw new Error('RTCView not found in react three.');
+        }
 
-    const setLocalRef = useCallback((instance: RTCViewRef | null) => {
-      nativeRef.current = instance;
+        return nodeHandle;
+    }
 
-      if (instance !== null) {
-        Object.assign(instance, {
-          startPictureInPicture(): void {
-            if (nativeRef.current !== null) {
-              startPictureInPicture(findNodeHandle(nativeRef.current));
-            }
-          },
-          stopPictureInPicture(): void {
-            if (nativeRef.current !== null) {
-              stopPictureInPicture(findNodeHandle(nativeRef.current));
-            }
-          },
-        });
-      }
-    }, []);
-
-    const ref = useMergeRefs<RTCViewRef | null>(setLocalRef, forwardedRef);
-
-    const onPictureInPictureModeChanged: NativeVideoViewProps["onPictureInPictureModeChanged"] =
-      (event) =>
-        props.onPictureInPictureModeChanged?.(
-          event.nativeEvent.isInPictureInPictureMode
+    private onPictureInPictureChange(
+        event: NativeSyntheticEvent<{ isInPictureInPicture: boolean }>
+    ) {
+        this.props.onPictureInPictureChange?.(
+            event.nativeEvent.isInPictureInPicture
         );
+    }
 
-    return (
-      <RTCVideoView
-        {...props}
-        ref={ref}
-        onPictureInPictureModeChanged={onPictureInPictureModeChanged}
-      />
-    );
-  }
-);
+    render(): React.ReactNode {
+        const { ...props } = this.props;
 
-export { RTCViewRef };
+        return (
+            <NativeRTCVideoView
+                {...props}
+                ref={this.ref}
+                onPictureInPictureChange={this.onPictureInPictureChange}
+            />
+        );
+    }
+}
+
+export { RTCVideoViewProps };
 
 export default RTCView;
