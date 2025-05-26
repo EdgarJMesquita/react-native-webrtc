@@ -159,7 +159,7 @@
 - (void)setPictureInPictureEnabled:(BOOL)pictureInPictureEnabled {
     _pictureInPictureEnabled = pictureInPictureEnabled;
     if (@available(iOS 15.0, *)){
-        [self setupPip];
+        [self applyPictureInPictureParams];
     }
 }
     
@@ -167,7 +167,7 @@
     if (_autoStartPictureInPicture != autoStartPictureInPicture) {
         _autoStartPictureInPicture = autoStartPictureInPicture;
         if (@available(iOS 15.0, *)) {
-            [self setupPip];
+            [self applyPictureInPictureParams];
         }
     }
 }
@@ -177,7 +177,7 @@
         _autoStopPictureInPicture = autoStopPictureInPicture;
         if (_autoStartPictureInPicture){
             if (@available(iOS 15.0, *)) {
-                [self setupPip];
+                [self applyPictureInPictureParams];
             }
         }
     }
@@ -188,7 +188,7 @@
         _pictureInPicturePreferredSize = pictureInPicturePreferredSize;
         if (_autoStartPictureInPicture){
             if (@available(iOS 15.0, *)) {
-                [self setupPip];
+                [self applyPictureInPictureParams];
             }
         }
     }
@@ -199,8 +199,58 @@
     [_pipController insertFallbackView:subview];
 }
 
+// Keeping setPIPOptions for backward compatibility between new picture in picture props and old iosPIP.
+- (void) API_AVAILABLE(ios(15.0)) setPIPOptions:(NSDictionary *)pipOptions {
+    if (!pipOptions) {
+        _pipController = nil;
+        return;
+    }
+    
+    RCTLogWarn(@"'iosPIP' is deprecated. Please use the new Picture-in-Picture props.");
+    
+    BOOL enabled = YES;
+    BOOL startAutomatically = YES;
+    BOOL stopAutomatically = YES;
 
-- (void) API_AVAILABLE(ios(15.0)) setupPip {
+    CGSize preferredSize = CGSizeZero;
+
+    if ([pipOptions objectForKey:@"enabled"]) {
+        enabled = [pipOptions[@"enabled"] boolValue];
+    }
+    if ([pipOptions objectForKey:@"startAutomatically"]) {
+        startAutomatically = [pipOptions[@"startAutomatically"] boolValue];
+    }
+    if ([pipOptions objectForKey:@"stopAutomatically"]) {
+        stopAutomatically = [pipOptions[@"stopAutomatically"] boolValue];
+    }
+    if ([pipOptions objectForKey:@"preferredSize"]) {
+        NSDictionary *sizeDict = pipOptions[@"preferredSize"];
+        id width = sizeDict[@"width"];
+        id height = sizeDict[@"height"];
+        
+        if ([width isKindOfClass:[NSNumber class]] && [height isKindOfClass:[NSNumber class]]) {
+            preferredSize = CGSizeMake([width doubleValue], [height doubleValue]);
+        }
+    }
+    
+    if (!enabled) {
+        _pipController = nil;
+        return;
+    }
+    
+    if (!_pipController) {
+        _pipController = [[PIPController alloc] initWithSourceView:self];
+        _pipController.videoTrack = _videoTrack;
+        _pipController.delegate = self;
+    }
+    
+    _pipController.startAutomatically = startAutomatically;
+    _pipController.stopAutomatically = stopAutomatically;
+    _pipController.objectFit = _objectFit;
+    _pipController.preferredSize = preferredSize;
+}
+
+- (void) API_AVAILABLE(ios(15.0)) applyPictureInPictureParams {
     if (!_pictureInPictureEnabled){
         _pipController = nil;
         return;
@@ -222,8 +272,10 @@
 }
 
     
-- (void) API_AVAILABLE(ios(15.0)) startPIP {
-    [self setupPip];
+- (void) API_AVAILABLE(ios(15.0)) startPIPWithParams:(BOOL)shouldApplyParams {
+    if(shouldApplyParams){
+        [self applyPictureInPictureParams];
+    }
     [_pipController startPIP];
 }
 
@@ -386,6 +438,11 @@ RCT_CUSTOM_VIEW_PROPERTY(streamURL, NSString *, RTCVideoView) {
     });
 }
 
+RCT_CUSTOM_VIEW_PROPERTY(iosPIP, NSDictionary *, RTCVideoView) {
+    if (@available(iOS 15.0, *)) {
+        [view setPIPOptions:json];
+    }
+}
 
 RCT_EXPORT_VIEW_PROPERTY(pictureInPictureEnabled, BOOL)
     
@@ -418,12 +475,42 @@ RCT_EXPORT_METHOD(startPictureInPicture:(nonnull NSNumber *)reactTag) {
                 RCTLogError(@"Cannot find RTCVideoView with tag #%@", reactTag);
                 return;
             }
-            [(RTCVideoView *)view startPIP];
+            [(RTCVideoView *)view startPIPWithParams:YES];
         }];
     }
 }
 
 RCT_EXPORT_METHOD(stopPictureInPicture:(nonnull NSNumber *)reactTag) {
+    if (@available(iOS 15.0, *)) {
+        RCTUIManager *uiManager = [self.bridge moduleForClass:[RCTUIManager class]];
+        [uiManager addUIBlock:^(RCTUIManager *uiManager, NSDictionary<NSNumber *,UIView *> *viewRegistry) {
+            UIView *view = viewRegistry[reactTag];
+            if (!view || ![view isKindOfClass:[RTCVideoView class]]) {
+                RCTLogError(@"Cannot find RTCVideoView with tag #%@", reactTag);
+                return;
+            }
+            [(RTCVideoView *)view stopPIP];
+        }];
+    }
+}
+
+// Keeping startIOSPIP for backward compatibility
+RCT_EXPORT_METHOD(startIOSPIP:(nonnull NSNumber *)reactTag) {
+    if (@available(iOS 15.0, *)) {
+        RCTUIManager *uiManager = [self.bridge moduleForClass:[RCTUIManager class]];
+        [uiManager addUIBlock:^(RCTUIManager *uiManager, NSDictionary<NSNumber *,UIView *> *viewRegistry) {
+            UIView *view = viewRegistry[reactTag];
+            if (!view || ![view isKindOfClass:[RTCVideoView class]]) {
+                RCTLogError(@"Cannot find RTCVideoView with tag #%@", reactTag);
+                return;
+            }
+            [(RTCVideoView *)view startPIPWithParams:NO];
+        }];
+    }
+}
+    
+// Keeping startIOSPIP for backward compatibility
+RCT_EXPORT_METHOD(stopIOSPIP:(nonnull NSNumber *)reactTag) {
     if (@available(iOS 15.0, *)) {
         RCTUIManager *uiManager = [self.bridge moduleForClass:[RCTUIManager class]];
         [uiManager addUIBlock:^(RCTUIManager *uiManager, NSDictionary<NSNumber *,UIView *> *viewRegistry) {

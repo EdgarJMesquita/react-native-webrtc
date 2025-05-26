@@ -199,6 +199,6 @@ class RTCView extends React.PureComponent<RTCVideoViewProps> {
     }
 }
 
-export { RTCVideoViewProps };
+export { RTCVideoViewProps, NativeRTCVideoView , NativeVideoViewProps };
 
 export default RTCView;

@@ -18,6 +18,7 @@ import permissions from './Permissions';
 import RTCAudioSession from './RTCAudioSession';
 import RTCErrorEvent from './RTCErrorEvent';
 import RTCIceCandidate from './RTCIceCandidate';
+import RTCPIPView,{ startIOSPIP, stopIOSPIP } from './RTCPIPView';
 import RTCPeerConnection from './RTCPeerConnection';
 import RTCRtpReceiver from './RTCRtpReceiver';
 import RTCRtpSender from './RTCRtpSender';
@@ -36,6 +37,7 @@ export {
     RTCPeerConnection,
     RTCSessionDescription,
     RTCView,
+    RTCPIPView,
     ScreenCapturePickerView,
     RTCRtpTransceiver,
     RTCRtpReceiver,
@@ -49,6 +51,8 @@ export {
     mediaDevices,
     permissions,
     registerGlobals,
+    startIOSPIP,
+    stopIOSPIP,
 };
 
 declare const global: any;
