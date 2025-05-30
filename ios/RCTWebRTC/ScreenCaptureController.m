@@ -10,6 +10,7 @@ NSString *const kRTCAppGroupIdentifier = @"RTCAppGroupIdentifier";
 @interface ScreenCaptureController ()
 
 @property(nonatomic, retain) ScreenCapturer *capturer;
+@property(nonatomic, strong) BroadcastController *broadcastController;
 
 @end
 
@@ -25,10 +26,12 @@ NSString *const kRTCAppGroupIdentifier = @"RTCAppGroupIdentifier";
 
 @implementation ScreenCaptureController
 
-- (instancetype)initWithCapturer:(nonnull ScreenCapturer *)capturer {
+- (instancetype)initWithCapturer:(nonnull ScreenCapturer *)capturer
+                broadcastManager:(nonnull BroadcastController*)broadcastController {
     self = [super init];
     if (self) {
         self.capturer = capturer;
+        self.broadcastController = broadcastController;
         self.deviceId = @"screen-capture";
     }
 
@@ -37,6 +40,7 @@ NSString *const kRTCAppGroupIdentifier = @"RTCAppGroupIdentifier";
 
 - (void)dealloc {
     [self.capturer stopCapture];
+    [self.broadcastController stopBroadcast];
 }
 
 - (void)startCapture {
@@ -52,6 +56,7 @@ NSString *const kRTCAppGroupIdentifier = @"RTCAppGroupIdentifier";
 
 - (void)stopCapture {
     [self.capturer stopCapture];
+    [self.broadcastController stopBroadcast];
 }
 
 - (NSDictionary *)getSettings {
