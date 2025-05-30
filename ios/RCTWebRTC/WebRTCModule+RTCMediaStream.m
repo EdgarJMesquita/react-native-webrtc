@@ -14,6 +14,7 @@
 #import "ScreenCapturer.h"
 #import "TrackCapturerEventsEmitter.h"
 #import "VideoCaptureController.h"
+#import "BroadcastController.h"
 
 @implementation WebRTCModule (RTCMediaStream)
 
@@ -128,7 +129,7 @@
 #endif
 }
 
-- (RTCVideoTrack *)createScreenCaptureVideoTrack {
+- (RTCVideoTrack *)createScreenCaptureVideoTrackWith:(BroadcastController*)broadcastController {
 #if TARGET_IPHONE_SIMULATOR || TARGET_OS_OSX || TARGET_OS_TV
     return nil;
 #endif
@@ -140,11 +141,13 @@
 
     ScreenCapturer *screenCapturer = [[ScreenCapturer alloc] initWithDelegate:videoSource];
     ScreenCaptureController *screenCaptureController =
-        [[ScreenCaptureController alloc] initWithCapturer:screenCapturer];
-
+    [[ScreenCaptureController alloc] initWithCapturer:screenCapturer broadcastManager:broadcastController];
+    
     TrackCapturerEventsEmitter *emitter = [[TrackCapturerEventsEmitter alloc] initWith:trackUUID webRTCModule:self];
+    
     screenCaptureController.eventsDelegate = emitter;
     videoTrack.captureController = screenCaptureController;
+    
     [screenCaptureController startCapture];
 
     return videoTrack;
@@ -156,30 +159,40 @@ RCT_EXPORT_METHOD(getDisplayMedia : (RCTPromiseResolveBlock)resolve rejecter : (
     return;
 #else
 
-    RTCVideoTrack *videoTrack = [self createScreenCaptureVideoTrack];
+    BroadcastController *broadcastManager = [BroadcastController alloc];
+    
+    [broadcastManager requestBroadcastWithCompletion:^(NSError * _Nullable error) {
+        if(error){
+            reject(@"BroadcastController", error.localizedDescription.description, error);
+            return;
+        }
+        
+        RTCVideoTrack *videoTrack = [self createScreenCaptureVideoTrackWith:broadcastManager];
 
-    if (videoTrack == nil) {
-        reject(@"DOMException", @"AbortError", nil);
-        return;
-    }
+        if (videoTrack == nil) {
+            reject(@"DOMException", @"AbortError", nil);
+            return;
+        }
 
-    NSString *mediaStreamId = [[NSUUID UUID] UUIDString];
-    RTCMediaStream *mediaStream = [self.peerConnectionFactory mediaStreamWithStreamId:mediaStreamId];
-    [mediaStream addVideoTrack:videoTrack];
+        NSString *mediaStreamId = [[NSUUID UUID] UUIDString];
+        RTCMediaStream *mediaStream = [self.peerConnectionFactory mediaStreamWithStreamId:mediaStreamId];
+        [mediaStream addVideoTrack:videoTrack];
 
-    NSString *trackId = videoTrack.trackId;
-    self.localTracks[trackId] = videoTrack;
+        NSString *trackId = videoTrack.trackId;
+        self.localTracks[trackId] = videoTrack;
 
-    NSDictionary *trackInfo = @{
-        @"enabled" : @(videoTrack.isEnabled),
-        @"id" : videoTrack.trackId,
-        @"kind" : videoTrack.kind,
-        @"readyState" : @"live",
-        @"remote" : @(NO)
-    };
+        NSDictionary *trackInfo = @{
+            @"enabled" : @(videoTrack.isEnabled),
+            @"id" : videoTrack.trackId,
+            @"kind" : videoTrack.kind,
+            @"readyState" : @"live",
+            @"remote" : @(NO)
+        };
 
-    self.localStreams[mediaStreamId] = mediaStream;
-    resolve(@{@"streamId" : mediaStreamId, @"track" : trackInfo});
+        self.localStreams[mediaStreamId] = mediaStream;
+        resolve(@{@"streamId" : mediaStreamId, @"track" : trackInfo});
+    }];
+    
 #endif
 }
 

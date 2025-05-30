@@ -1,6 +1,7 @@
 #import <Foundation/Foundation.h>
 #import "CaptureController.h"
 #import "CapturerEventsDelegate.h"
+#import "BroadcastController.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -11,7 +12,8 @@ extern NSString *const kRTCAppGroupIdentifier;
 
 @interface ScreenCaptureController : CaptureController
 
-- (instancetype)initWithCapturer:(nonnull ScreenCapturer *)capturer;
+- (instancetype)initWithCapturer:(nonnull ScreenCapturer *)capturer
+                broadcastManager:(nonnull BroadcastController*)broadcastController;
 - (void)startCapture;
 - (void)stopCapture;
 
