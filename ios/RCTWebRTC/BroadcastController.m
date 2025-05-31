@@ -1,13 +1,11 @@
 #import <Foundation/Foundation.h>
 #import "BroadcastController.h"
 
-NSString *const kRTCBroadcastManagerScreenSharingExtension = @"RTCScreenSharingExtension";
+NSString *const kRTCBroadcastControllerScreenSharingExtension = @"RTCScreenSharingExtension";
 
 @interface BroadcastController (Private) <RPBroadcastActivityViewControllerDelegate>
 
 @property (nonatomic, strong, nullable) RPBroadcastController *broadcastController;
-
-@property (nonatomic) NSString *preferredExtension;
 
 @end
 
@@ -99,7 +97,7 @@ NSString *const kRTCBroadcastManagerScreenSharingExtension = @"RTCScreenSharingE
 
 - (NSString *)preferredExtension {
     NSDictionary *infoDictionary = [[NSBundle mainBundle] infoDictionary];
-    return infoDictionary[kRTCBroadcastManagerScreenSharingExtension];
+    return infoDictionary[kRTCBroadcastControllerScreenSharingExtension];
 }
 
 

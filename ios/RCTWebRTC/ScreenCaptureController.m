@@ -27,7 +27,7 @@ NSString *const kRTCAppGroupIdentifier = @"RTCAppGroupIdentifier";
 @implementation ScreenCaptureController
 
 - (instancetype)initWithCapturer:(nonnull ScreenCapturer *)capturer
-                broadcastManager:(nonnull BroadcastController*)broadcastController {
+                broadcastController:(nonnull BroadcastController*)broadcastController {
     self = [super init];
     if (self) {
         self.capturer = capturer;
