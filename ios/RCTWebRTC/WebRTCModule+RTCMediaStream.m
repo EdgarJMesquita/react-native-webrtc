@@ -141,7 +141,7 @@
 
     ScreenCapturer *screenCapturer = [[ScreenCapturer alloc] initWithDelegate:videoSource];
     ScreenCaptureController *screenCaptureController =
-    [[ScreenCaptureController alloc] initWithCapturer:screenCapturer broadcastManager:broadcastController];
+    [[ScreenCaptureController alloc] initWithCapturer:screenCapturer broadcastController:broadcastController];
     
     TrackCapturerEventsEmitter *emitter = [[TrackCapturerEventsEmitter alloc] initWith:trackUUID webRTCModule:self];
     
@@ -159,15 +159,15 @@ RCT_EXPORT_METHOD(getDisplayMedia : (RCTPromiseResolveBlock)resolve rejecter : (
     return;
 #else
 
-    BroadcastController *broadcastManager = [BroadcastController alloc];
+    BroadcastController *broadcastController = [[BroadcastController alloc] init];
     
-    [broadcastManager requestBroadcastWithCompletion:^(NSError * _Nullable error) {
+    [broadcastController requestBroadcastWithCompletion:^(NSError * _Nullable error) {
         if(error){
             reject(@"BroadcastController", error.localizedDescription.description, error);
             return;
         }
         
-        RTCVideoTrack *videoTrack = [self createScreenCaptureVideoTrackWith:broadcastManager];
+        RTCVideoTrack *videoTrack = [self createScreenCaptureVideoTrackWith:broadcastController];
 
         if (videoTrack == nil) {
             reject(@"DOMException", @"AbortError", nil);
